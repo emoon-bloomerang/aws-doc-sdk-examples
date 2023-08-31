@@ -78,6 +78,7 @@ function get_instance_info {
                    --query 'Reservations[*].Instances[*].[State.Name, InstanceType]' \
                    --filters Name=instance-id,Values="$INSTANCE_ID" \
                    --output text \
+                   --profile prod \
                )
 
     if [[ $? -ne 0 ]] || [[ -z "$RESPONSE" ]]; then
@@ -210,7 +211,7 @@ function change_ec2_instance_type {
         # stop the instance
         iecho -n "Attempting to stop instance $INSTANCE_ID..."
         RESPONSE=$( aws ec2 stop-instances \
-                        --instance-ids "$INSTANCE_ID" )
+                        --instance-ids "$INSTANCE_ID" --profile prod )
 
         if [[ ${?} -ne 0 ]]; then
             echo "ERROR - AWS reports that it's unable to stop instance $INSTANCE_ID.\n$RESPONSE"
@@ -224,7 +225,7 @@ function change_ec2_instance_type {
     # Wait until stopped.
     iecho "Waiting for $INSTANCE_ID to report 'stopped' state..."
     aws ec2 wait instance-stopped \
-        --instance-ids "$INSTANCE_ID"
+        --instance-ids "$INSTANCE_ID" --profile prod
     if [[ ${?} -ne 0 ]]; then
         echo "\nERROR - AWS reports that Wait command failed.\n$RESPONSE"
         return 1
@@ -235,7 +236,7 @@ function change_ec2_instance_type {
     iecho "Attempting to change type from $EXISTING_TYPE to $REQUESTED_TYPE..."
     RESPONSE=$(aws ec2 modify-instance-attribute \
                    --instance-id "$INSTANCE_ID" \
-                   --instance-type "{\"Value\":\"$REQUESTED_TYPE\"}"
+                   --instance-type "{\"Value\":\"$REQUESTED_TYPE\"}" --profile prod
               )
     if [[ ${?} -ne 0 ]]; then
         errecho "ERROR - AWS reports that it's unable to change the instance type for instance $INSTANCE_ID from $EXISTING_TYPE to $REQUESTED_TYPE.\n$RESPONSE"
@@ -249,6 +250,7 @@ function change_ec2_instance_type {
         iecho "Requesting to restart instance $INSTANCE_ID..."
         RESPONSE=$(aws ec2 start-instances \
                         --instance-ids "$INSTANCE_ID" \
+                        --profile prod \
                    )
         if [[ ${?} -ne 0 ]]; then
             errecho "ERROR - AWS reports that it's unable to restart instance $INSTANCE_ID.\n$RESPONSE"
@@ -257,7 +259,7 @@ function change_ec2_instance_type {
         iecho "started.\n"
         iecho "Waiting for instance $INSTANCE_ID to report 'running' state..."
         RESPONSE=$(aws ec2 wait instance-running \
-                       --instance-ids "$INSTANCE_ID" )
+                       --instance-ids "$INSTANCE_ID" --profile prod )
         if [[ ${?} -ne 0 ]]; then
             errecho "ERROR - AWS reports that Wait command failed.\n$RESPONSE"
             return 1
